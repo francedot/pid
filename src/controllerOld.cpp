@@ -42,25 +42,13 @@
 #include <dynamic_reconfigure/server.h>
 #include <ros/time.h>
 
-// Mod
-#include <pid/StampedFloat64.h>
-#include <std_msgs/Header.h>
-
-using namespace std_msgs;
-using namespace pid;
-
 void setpoint_callback(const std_msgs::Float64& setpoint_msg)
 {
   setpoint = setpoint_msg.data;
 }
 
-//Mod
-void plant_state_callback(const pid::StampedFloat64& stamped_msg)
+void plant_state_callback(const std_msgs::Float64& state_msg)
 {
-  //Mod
-  Header hdr = stamped_msg.header;
-  Float64 state_msg;
-  state_msg.data = stamped_msg.c;
 
   if ( !((Kp<=0. && Ki<=0. && Kd<=0.) || (Kp>=0. && Ki>=0. && Kd>=0.)) ) // All 3 gains should have the same sign
   {
@@ -162,13 +150,8 @@ void plant_state_callback(const pid::StampedFloat64& stamped_msg)
   // Publish the stabilizing control effort if the controller is enabled
   if (pid_enabled)
   {
-    //Mod
-    pid::StampedFloat64 stamped_output;
-    stamped_output.header = hdr;
-    stamped_output.c = control_effort;
-    control_effort_pub.publish(stamped_output);
-    //control_msg.data = control_effort;
-    //control_effort_pub.publish(control_msg);
+    control_msg.data = control_effort;
+    control_effort_pub.publish(control_msg);
   }
   else
   {
@@ -311,9 +294,7 @@ int main(int argc, char **argv)
   node_priv.param<double>("lower_limit", lower_limit, -1000.0);
   node_priv.param<double>("windup_limit", windup_limit, 1000.0);
   node_priv.param<double>("cutoff_frequency", cutoff_frequency, -1.0);
-  // TO-DO publish stampedf
   node_priv.param<std::string>("topic_from_controller", topic_from_controller, "control_effort");
-  // TO-DO read stampedf
   node_priv.param<std::string>("topic_from_plant", topic_from_plant, "state");
   node_priv.param<std::string>("setpoint_topic", setpoint_topic, "setpoint");
   node_priv.param<std::string>("pid_enable_topic", pid_enable_topic, "pid_enable");
@@ -328,7 +309,7 @@ int main(int argc, char **argv)
   }
 
   // instantiate publishers & subscribers
-  control_effort_pub = node.advertise<pid::StampedFloat64>(topic_from_controller, 1);
+  control_effort_pub = node.advertise<std_msgs::Float64>(topic_from_controller, 1);
 
   ros::Subscriber sub = node.subscribe(topic_from_plant, 1, plant_state_callback );
   ros::Subscriber setpoint_sub = node.subscribe(setpoint_topic, 1, setpoint_callback );
