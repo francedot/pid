@@ -55,19 +55,16 @@ void setpoint_callback(const std_msgs::Float64& setpoint_msg)
 }
 
 //Mod
-void plant_state_callback(const pid::StampedFloat64& stamped_msg)
+void plant_state_callback(const pid::StampedFloat64ConstPtr& stamped_msg)
 {
   //Mod
-  Header hdr = stamped_msg.header;
-  Float64 state_msg;
-  state_msg.data = stamped_msg.c;
+  Header hdr = stamped_msg->header;
+  plant_state = stamped_msg->c;
 
   if ( !((Kp<=0. && Ki<=0. && Kd<=0.) || (Kp>=0. && Ki>=0. && Kd>=0.)) ) // All 3 gains should have the same sign
   {
     ROS_WARN("All three gains (Kp, Ki, Kd) should have the same sign for stability.");
   }
-
-  plant_state = state_msg.data;
 
   error.at(2) = error.at(1);
   error.at(1) = error.at(0);
@@ -231,6 +228,7 @@ void reconfigure_callback(pid::PidConfig &config, uint32_t level)
   Kp = config.Kp * config.Kp_scale;
   Ki = config.Ki * config.Ki_scale;
   Kd = config.Kd * config.Kd_scale;
+  setpoint = config.setpoint;
   ROS_INFO("Pid reconfigure request: Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
 }
 
